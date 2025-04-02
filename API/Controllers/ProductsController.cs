@@ -1,3 +1,4 @@
+using API.RequestHelpers;
 using Core.Entities;
 using Core.Interfaces;
 using Core.Specifications;
@@ -11,7 +12,7 @@ namespace API.Controllers
     [Route("api/[controller]")]
     //If not us [ApiController] here the you need to add [FromQuery] in action result argurments
     [ApiController]
-    public class ProductsController : ControllerBase
+    public class ProductsController : BaseApiController
     {
         private readonly IGenericRepository<Product> repo;
 
@@ -20,11 +21,10 @@ namespace API.Controllers
             this.repo = repo;
         }
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<Product>>> GetProducts(string? brand, string? type, string? sort)
+        public async Task<ActionResult<IReadOnlyList<Product>>> GetProducts([FromQuery]ProductSpecParams specParams)
         {
-            var spec = new ProductSpecification(brand,type,sort);
-            var product = await repo.ListAsync(spec);
-            return Ok(product); 
+            var spec = new ProductSpecification(specParams);
+            return await CreatePageResult(repo, spec, specParams.PageIndex, specParams.PageSize); 
         }
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
