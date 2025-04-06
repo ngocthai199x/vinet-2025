@@ -1,0 +1,66 @@
+<mat-card class="max-w-lg mx-auto mt-32 p-8 bg-white">
+  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-semibold text-primary">Login</h1>
+    </div>
+    <!-- <mat-form-field appearance="outline" class="w-full mb-4">
+      <mat-label>First Name</mat-label>
+      <input
+        formControlName="firstName"
+        type="text"
+        placeholder="First Name"
+        matInput
+      />
+      @if(registerForm.get('firstName')?.hasError('required')) {
+      <mat-error>First name is required!</mat-error>}
+    </mat-form-field> -->
+    <!-- Demo of usage of generic text-input reusable component -->
+    <app-text-input label="First name" formControlName="firstName" />
+    <mat-form-field appearance="outline" class="w-full mb-4">
+      <mat-label>Last Name</mat-label>
+      <input
+        formControlName="lastName"
+        type="text"
+        placeholder="Last Name"
+        matInput
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-full mb-4">
+      <mat-label>Email Address</mat-label>
+      <input
+        formControlName="email"
+        type="email"
+        placeholder="name@example.com"
+        matInput
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-full mb-4">
+      <mat-label>Password</mat-label>
+      <input
+        formControlName="password"
+        type="password"
+        placeholder="Password"
+        matInput
+      />
+    </mat-form-field>
+    @if(validationErrors) {
+    <div class="mb-3 p-4 bg-red-100 text-red-600">
+      <ul class="list-disc px-3">
+        @for(error of validationErrors; track $index){
+        <li>{{ error }}</li>
+        }
+      </ul>
+    </div>
+    }
+    <button
+      mat-flat-button
+      type="submit"
+      class="w-full py-2"
+      [disabled]="registerForm.invalid"
+    >
+      Register
+    </button>
+  </form>
+</mat-card>
+
+<mat-card> </mat-card>
