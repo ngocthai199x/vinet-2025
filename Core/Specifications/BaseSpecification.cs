@@ -23,9 +23,20 @@ public class BaseSpecification<T> : ISpecification<T>
 
     public bool IsPageEnabled {get; private set;}
 
+    public List<Expression<Func<T, object>>> Includes {get;} = [];
+
+    public List<string> IncludeStrings {get;} = [];
+
     public BaseSpecification(Expression<Func<T, bool>> criteria)
     {
         this._criteria = criteria;
+    }
+    protected void AddInclude(Expression<Func<T, object>> includeExpression)
+    {
+        Includes.Add(includeExpression);// Eager loading first level
+    }
+    protected void AddInclude(string includeString){
+        IncludeStrings.Add(includeString); // For ThenInclude in Eager loading
     }
     protected void AddOrderBy(Expression<Func<T,object>> orderByExpression)
     {
