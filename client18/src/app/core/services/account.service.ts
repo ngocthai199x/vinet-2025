@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Address, User } from '../../shared/models/user';
-import { map } from 'rxjs';
+import { map, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -37,7 +37,16 @@ export class AccountService {
     );
   }
   updateAddress(add: Address) {
-    return this.http.post(this.baseUrl + 'account/address', add);
+    return this.http.post(this.baseUrl + 'account/address', add).pipe(
+      //use tap because we dont need anything return here
+      //use map if me want to do something be still reture the object
+      tap(() => {
+        this.currentUser.update((user) => {
+          if (user) user.address = add;
+          return user;
+        });
+      })
+    );
   }
   getAuthState() {
     return this.http.get<{ isAuthenticated: boolean }>(
