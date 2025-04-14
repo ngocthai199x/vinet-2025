@@ -25,6 +25,8 @@ import { CheckoutDeliveryComponent } from './checkout-delivery/checkout-delivery
 import { CartService } from '../../core/services/cart.service';
 import { CurrencyPipe, JsonPipe } from '@angular/common';
 import { CheckoutReviewComponent } from './checkout-review/checkout-review.component';
+import { OrderToCreate, ShippingAddress } from '../../shared/models/order';
+import { OrderService } from '../../core/services/order.service';
 
 @Component({
   selector: 'app-checkout',
@@ -48,6 +50,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   private snack = inject(SnackbarService);
   private accountService = inject(AccountService);
   private router = inject(Router);
+  private orderServices = inject(OrderService);
   cartService = inject(CartService);
   addressElement?: StripeAddressElement;
   paymentElement?: StripePaymentElement;
@@ -119,12 +122,24 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         const result = await this.stripeService.confirmPayment(
           this.confimationToken
         );
-        if (result.error) {
+
+        if (result.paymentIntent?.status === 'succeeded') {
+          const order = await this.createOrderModel();
+          const orderResult = await firstValueFrom(
+            this.orderServices.createOrder(order)
+          );
+          if (orderResult) {
+            this.orderServices.orderComplete = true;
+            this.cartService.deleteCart();
+            this.cartService.selectedDeliveryMethod.set(null);
+            this.router.navigateByUrl('/checkout/success');
+          } else {
+            throw new Error('Order creation failed');
+          }
+        } else if (result.error) {
           throw new Error(result.error.message);
         } else {
-          this.cartService.deleteCart();
-          this.cartService.selectedDeliveryMethod.set(null);
-          this.router.navigateByUrl('/checkout/success');
+          throw new Error('Something went wrong');
         }
       }
     } catch (error: any) {
@@ -133,11 +148,31 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       this.loading = false;
     }
   }
+  private async createOrderModel(): Promise<OrderToCreate> {
+    const cart = this.cartService.cart();
+    const shippingAddress =
+      (await this.getAddressFromTripeAddress()) as ShippingAddress;
+    const card = this.confimationToken?.payment_method_preview.card;
+    if (!cart?.id || !cart.deliveryMethodId || !card || !shippingAddress) {
+      throw new Error('Problem creating order');
+    }
+    return {
+      cartId: cart.id,
+      paymentSummary: {
+        last4: +card.last4,
+        brand: card.brand,
+        expMonth: card.exp_month,
+        expYear: card.exp_year,
+      },
+      deliveryMethodId: cart.deliveryMethodId,
+      shippingAddress: shippingAddress,
+    };
+  }
   async onStepChange(event: StepperSelectionEvent) {
     if (event.selectedIndex === 1) {
       if (this.saveAddress) {
         //get address from stripe form
-        const address = await this.getAddressFromTripeAddress();
+        const address = (await this.getAddressFromTripeAddress()) as Address;
         address && firstValueFrom(this.accountService.updateAddress(address));
       }
     }
@@ -150,11 +185,14 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       console.log(this.confimationToken);
     }
   }
-  private async getAddressFromTripeAddress(): Promise<Address | null> {
+  private async getAddressFromTripeAddress(): Promise<
+    Address | ShippingAddress | null
+  > {
     const result = await this.addressElement?.getValue();
     const address = result?.value.address;
     if (address) {
       return {
+        name: result.value.name,
         line1: address.line1,
         line2: address.line2 || undefined,
         city: address.city,
